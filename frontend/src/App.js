@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+// Changed BrowserRouter to HashRouter
+import { HashRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import Workspace from './Workspace';
 import './App.css';
@@ -55,6 +56,7 @@ function LandingPage() {
 
 function App() {
   return (
+    // Router now behaves as HashRouter behind the scenes, making it fully compatible with GitHub Pages subfolders
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
