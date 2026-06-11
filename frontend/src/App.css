@@ -1,0 +1,126 @@
+/* Global Reset */
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #121212;
+  color: #ffffff;
+  overflow: hidden;
+}
+
+/* Landing Page Styling */
+.landing-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: radial-gradient(circle at top right, #1f1c2c, #0f2027);
+}
+
+.landing-card {
+  text-align: center;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  max-width: 500px;
+}
+
+.landing-card h1 {
+  margin-bottom: 15px;
+  font-size: 2.5rem;
+  background: linear-gradient(45deg, #00f2fe, #4facfe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.landing-card p {
+  color: #b3b3b3;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.btn-create {
+  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+  color: #fff;
+  border: none;
+  padding: 14px 28px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+}
+
+.btn-create:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 242, 254, 0.5);
+}
+
+.btn-create:active {
+  transform: translateY(1px);
+}
+/* New UI Additions for Custom Room Names */
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 25px 0;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.divider:not(:empty)::before { margin-right: .75em; }
+.divider:not(:empty)::after { margin-left: .75em; }
+
+.custom-room-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.room-input {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #fff;
+  padding: 14px;
+  font-size: 1rem;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.room-input:focus {
+  border-color: #00f2fe;
+  box-shadow: 0 0 0 2px rgba(0, 242, 254, 0.2);
+}
+
+.btn-join {
+  background: #1e293b;
+  color: #00f2fe;
+  border: 1px solid #00f2fe;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-join:hover {
+  background: rgba(0, 242, 254, 0.1);
+  transform: translateY(-1px);
+}
