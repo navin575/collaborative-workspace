@@ -7,45 +7,42 @@ export default function Workspace() {
   const { roomId } = useParams();
   const navigate = useNavigate();
   
-  // App Core States
   const [code, setCode] = useState('// Welcome to your common collaborative workspace!\n// Paste notes, code snippets, logs, or plain text here...');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Persistent socket instance reference wrapper
   const socketRef = useRef(null);
 
   useEffect(() => {
-    // Prompt for a quick username to populate the active user list registry
+    // Prompt for nickname
     const promptName = prompt("Enter your display nickname for this room:") || `User-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    // Initialize Connection Pipeline to your Live Render server instance
-    socketRef.current = io("https://codeshift-backend.onrender.com");
+    // Establish WebSocket connection pipeline straight to Render live hub
+    socketRef.current = io("https://codeshift-backend.onrender.com", {
+      transports: ['websocket', 'polling']
+    });
 
     const socket = socketRef.current;
 
-    // Once socket successfully connects, join the target workspace cluster
     socket.on('connect', () => {
       setLoading(false);
       socket.emit('join-room', { roomId, username: promptName });
     });
 
-    // Handle inbound real-time content changes from other remote clients
     socket.on('code-update', (updatedCode) => {
-      setCode(updatedCode);
+      if (updatedCode !== null) setCode(updatedCode);
     });
 
-    // Sync state matching the updated registry of active participants
     socket.on('user-list-update', (currentUsers) => {
-      setUsers(currentUsers);
+      if (currentUsers) setUsers(currentUsers);
     });
 
-    // Handle graceful disconnection or network drops
-    socket.on('disconnect', () => {
-      console.log("Disconnected from real-time streaming backbone server.");
+    socket.on('connect_error', (err) => {
+      console.warn("Connection optimization fallback rolling over...", err.message);
+      // Fallback loader clearance if direct websocket fails to prevent infinite freeze
+      setLoading(false); 
     });
 
-    // Disconnect cleanup routine on component unmount
     return () => {
       socket.disconnect();
     };
@@ -55,8 +52,7 @@ export default function Workspace() {
     if (value === undefined) return;
     setCode(value);
     
-    // Broadcast keystroke events across the Socket.io pipeline
-    if (socketRef.current) {
+    if (socketRef.current && socketRef.current.connected) {
       socketRef.current.emit('code-change', { roomId, code: value });
     }
   };
@@ -76,7 +72,7 @@ export default function Workspace() {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#1e1e1e', color: '#38bdf8', fontFamily: 'sans-serif', fontSize: '18px' }}>
-        ⚡ Establishing Socket.io Streaming Pipeline Endpoint...
+        ⚡ Connecting to real-time streaming server on Render...
       </div>
     );
   }
@@ -84,7 +80,7 @@ export default function Workspace() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#1e1e1e', color: '#fff', fontFamily: 'sans-serif' }}>
       
-      {/* Header Layout */}
+      {/* Header Bar */}
       <div style={{ padding: '12px 24px', background: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155' }}>
         <h3 style={{ margin: 0, fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: '700' }}>CODESWIFT</span>
@@ -110,10 +106,8 @@ export default function Workspace() {
         </div>
       </div>
 
-      {/* Main Layout Divided into Workspace Editor and Active User List Side Bar */}
+      {/* Main Core Viewport */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        
-        {/* Monaco Editor Container */}
         <div style={{ flex: 1, background: '#1e1e1e' }}>
           <Editor
             height="100%"
@@ -130,9 +124,9 @@ export default function Workspace() {
           />
         </div>
 
-        {/* Active Collaborators Sidebar Panel */}
+        {/* Sidebar Panel */}
         <div style={{ width: '240px', background: '#0f172a', borderLeft: '1px solid #334155', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <h4 style={{ margin: '0 0 8px 0', color: '#94a3b8', textTransform: 'uppercase', tracking: '0.05em', fontSize: '13px', fontWeight: '700' }}>
+          <h4 style={{ margin: '0 0 8px 0', color: '#94a3b8', textTransform: 'uppercase', fontSize: '13px', fontWeight: '700' }}>
             🟢 Active Peers ({users.length})
           </h4>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
