@@ -4,19 +4,25 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 
 const app = express();
-app.use(cors());
+
+// FIXED: Configured dynamic CORS origins for express middleware
+app.use(cors({
+    origin: ["http://localhost:3000", "https://codeshift-iota.vercel.app"],
+    methods: ["GET", "POST"]
+}));
 
 const server = http.createServer(app);
 
+// FIXED: Added your production Vercel URL to Socket.io CORS rules
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:3000", 
+        origin: ["http://localhost:3000", "https://codeshift-iota.vercel.app"], 
         methods: ["GET", "POST"]
     }
 });
 
 const roomUsers = {};
-// NEW: In-memory cache store to hold the latest text document state per room
+// In-memory cache store to hold the latest text document state per room
 const roomCodeCache = {}; 
 
 io.on('connection', (socket) => {
@@ -44,7 +50,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('code-change', ({ roomId, code }) => {
-        // NEW: Intercept the change and save it to our server cache
+        // Intercept the change and save it to our server cache
         roomCodeCache[roomId] = code; 
         
         socket.broadcast.to(roomId).emit('code-update', code);
