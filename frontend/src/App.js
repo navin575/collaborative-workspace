@@ -11,8 +11,8 @@ function LandingPage() {
 
   const createRandomRoom = () => {
     const uniqueRoomId = uuidv4().substring(0, 8); 
-    // FIXED: Prefixed with /# to prevent Vercel from searching for an actual server-side directory
-    navigate(`/#/room/${uniqueRoomId}`);
+    // FIXED: Give the router the plain, direct path. It handles the '#' automatically!
+    navigate(`/room/${uniqueRoomId}`);
   };
 
   const handleJoinCustomRoom = (e) => {
@@ -24,8 +24,8 @@ function LandingPage() {
       .toLowerCase()
       .replace(/[^a-z0-9-_]/g, '-');
 
-    // FIXED: Prefixed with /# here as well
-    navigate(`/#/room/${cleanRoomName}`);
+    // FIXED: Clean matching path here as well
+    navigate(`/room/${cleanRoomName}`);
   };
 
   return (
@@ -45,6 +45,8 @@ function LandingPage() {
         <form onSubmit={handleJoinCustomRoom} className="custom-room-form">
           <input
             type="text"
+            id="room-input"
+            name="room-input"
             placeholder="Enter custom room name (e.g., lab-group-4)"
             value={customRoomName}
             onChange={(e) => setCustomRoomName(e.target.value)}
