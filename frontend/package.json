@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "homepage": "https://navin575.github.io/collaborative-workspace",
+  
   "version": "0.1.0",
   "private": true,
   "dependencies": {
