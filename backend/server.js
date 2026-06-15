@@ -5,7 +5,7 @@ const cors = require('cors');
 
 const app = express();
 
-// FIXED: Configured dynamic CORS origins for express middleware
+// Configured dynamic CORS origins for express middleware
 app.use(cors({
     origin: ["http://localhost:3000", "https://codeshift-iota.vercel.app"],
     methods: ["GET", "POST"]
@@ -13,7 +13,7 @@ app.use(cors({
 
 const server = http.createServer(app);
 
-// FIXED: Added your production Vercel URL to Socket.io CORS rules
+// Added your production Vercel URL to Socket.io CORS rules
 const io = new Server(server, {
     cors: {
         origin: ["http://localhost:3000", "https://codeshift-iota.vercel.app"], 
@@ -43,6 +43,11 @@ io.on('connection', (socket) => {
             // If they already exist (like a refresh), update their active socket ID reference link
             const existingUser = roomUsers[roomId].find(user => user.username === username);
             if (existingUser) existingUser.id = socket.id;
+        }
+        
+        // 🟢 FIXED PERSISTENCE: If code already exists for this room, send it immediately to the user who just joined/refreshed
+        if (roomCodeCache[roomId] !== undefined) {
+            socket.emit('code-update', roomCodeCache[roomId]);
         }
         
         io.to(roomId).emit('user-list-update', roomUsers[roomId]);
