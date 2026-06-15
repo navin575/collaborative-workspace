@@ -1,89 +1,64 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
-import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, onValue, set, get, remove, update } from 'firebase/database';
-
-// Your authentic Firebase Web App Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyBJbKb1-aHVRRTsS1U_h5jZ9wcfJ_Quh-E",
-  authDomain: "collaborative-notepad-c6d84.firebaseapp.com",
-  databaseURL: "https://collaborative-notepad-c6d84-default-rtdb.asia-southeast1.firebasedatabase.app", 
-  projectId: "collaborative-notepad-c6d84",
-  storageBucket: "collaborative-notepad-c6d84.firebasestorage.app",
-  messagingSenderId: "446578856728",
-  appId: "1:446578856728:web:44eec04f4ef94b72eb846d"
-};
-
-// Initialize Firebase Core and Realtime Database references
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+import { io } from 'socket.io-client';
 
 export default function Workspace() {
   const { roomId } = useParams();
   const navigate = useNavigate();
-  const [code, setCode] = useState('// Welcome to your common collaborative workspace!\n// Paste notes, code snippets, logs, or plain text here...');
   
-  // Storage Expiry Control States
-  const [isExpired, setIsExpired] = useState(false);
+  // App Core States
+  const [code, setCode] = useState('// Welcome to your common collaborative workspace!\n// Paste notes, code snippets, logs, or plain text here...');
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Persistent socket instance reference wrapper
+  const socketRef = useRef(null);
 
-  // 1. Run Lifecycle Check Once on Page Mount
   useEffect(() => {
-    const roomRootRef = ref(db, `rooms/${roomId}`);
+    // Prompt for a quick username to populate the active user list registry
+    const promptName = prompt("Enter your display nickname for this room:") || `User-${Math.floor(1000 + Math.random() * 9000)}`;
 
-    get(roomRootRef).then((snapshot) => {
-      if (snapshot.exists()) {
-        const roomData = snapshot.val();
-        
-        if (roomData.lastUpdatedAt) {
-          const twentyFourHours = 24 * 60 * 60 * 1000; // Milliseconds in a day
-          const timeDifference = Date.now() - roomData.lastUpdatedAt;
+    // Initialize Connection Pipeline to your Live Render server instance
+    socketRef.current = io("https://codeshift-backend.onrender.com");
 
-          // If the room hasn't been active for 24 hours, perform deletion cleanup
-          if (timeDifference > twentyFourHours) {
-            remove(roomRootRef);
-            setIsExpired(true);
-            setLoading(false);
-            return;
-          }
-        }
-      }
+    const socket = socketRef.current;
+
+    // Once socket successfully connects, join the target workspace cluster
+    socket.on('connect', () => {
       setLoading(false);
-    }).catch((err) => {
-      console.error("Error running lifecycle assessment:", err);
-      setLoading(false);
+      socket.emit('join-room', { roomId, username: promptName });
     });
+
+    // Handle inbound real-time content changes from other remote clients
+    socket.on('code-update', (updatedCode) => {
+      setCode(updatedCode);
+    });
+
+    // Sync state matching the updated registry of active participants
+    socket.on('user-list-update', (currentUsers) => {
+      setUsers(currentUsers);
+    });
+
+    // Handle graceful disconnection or network drops
+    socket.on('disconnect', () => {
+      console.log("Disconnected from real-time streaming backbone server.");
+    });
+
+    // Disconnect cleanup routine on component unmount
+    return () => {
+      socket.disconnect();
+    };
   }, [roomId]);
 
-  // 2. Main Real-time Connection Pipelines (Text Document Only)
-  useEffect(() => {
-    if (isExpired || loading) return; // Block active listeners if room is loading or dead
-
-    const codeRef = ref(db, `rooms/${roomId}/code`);
-
-    // Listen for real-time text document changes across the cloud pipeline
-    const unsubscribeCode = onValue(codeRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data !== null) setCode(data);
-    });
-
-    return () => {
-      unsubscribeCode();
-    };
-  }, [roomId, isExpired, loading]);
-
-  // Unified activity pulse function to bump the room's heartbeat timestamp node
-  const bumpHeartbeat = () => {
-    update(ref(db, `rooms/${roomId}`), {
-      lastUpdatedAt: Date.now()
-    });
-  };
-
   const handleEditorChange = (value) => {
+    if (value === undefined) return;
     setCode(value);
-    set(ref(db, `rooms/${roomId}/code`), value);
-    bumpHeartbeat(); // Register room activity on keystrokes
+    
+    // Broadcast keystroke events across the Socket.io pipeline
+    if (socketRef.current) {
+      socketRef.current.emit('code-change', { roomId, code: value });
+    }
   };
 
   const downloadNotes = () => {
@@ -98,40 +73,18 @@ export default function Workspace() {
     URL.revokeObjectURL(blobUrl);
   };
 
-  // Render Loader screen while async lifecycle check resolves
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#1e1e1e', color: '#38bdf8', fontFamily: 'sans-serif', fontSize: '18px' }}>
-        ⚡ Assessing workspace authentication lifecycle...
+        ⚡ Establishing Socket.io Streaming Pipeline Endpoint...
       </div>
     );
   }
 
-  // Render Expiry Fallback UI if the room was wiped due to 24-hour inactivity
-  if (isExpired) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#0f172a', color: '#fff', fontFamily: 'sans-serif', padding: '20px' }}>
-        <div style={{ background: '#1e293b', padding: '40px', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', maxWidth: '450px', textAlign: 'center', border: '1px solid #334155' }}>
-          <h2 style={{ color: '#f43f5e', marginTop: 0, fontSize: '26px' }}>⚠️ Workspace Expired</h2>
-          <p style={{ color: '#94a3b8', lineHeight: '1.6', margin: '18px 0 28px 0' }}>
-            This collaborative room was automatically deleted because it has been inactive for more than 24 hours. We clean inactive paths to optimize cloud resources.
-          </p>
-          <button 
-            onClick={() => navigate('/')} 
-            style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '6px', fontWeight: '600', fontSize: '15px', cursor: 'pointer', width: '100%' }}
-          >
-            Create Fresh Room
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Render Active Working Workspace Structure
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#1e1e1e', color: '#fff' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#1e1e1e', color: '#fff', fontFamily: 'sans-serif' }}>
       
-      {/* Header Bar */}
+      {/* Header Layout */}
       <div style={{ padding: '12px 24px', background: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155' }}>
         <h3 style={{ margin: 0, fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: '700' }}>CODESWIFT</span>
@@ -148,12 +101,20 @@ export default function Workspace() {
           >
             📥 Download Notes
           </button>
+          <button 
+            onClick={() => navigate('/')}
+            style={{ background: '#f43f5e', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }}
+          >
+            Leave Room
+          </button>
         </div>
       </div>
 
-      {/* Main Panel Core Layout (Full Screen Text Editor) */}
+      {/* Main Layout Divided into Workspace Editor and Active User List Side Bar */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <div style={{ width: '100%', background: '#1e1e1e' }}>
+        
+        {/* Monaco Editor Container */}
+        <div style={{ flex: 1, background: '#1e1e1e' }}>
           <Editor
             height="100%"
             theme="vs-dark"
@@ -168,6 +129,24 @@ export default function Workspace() {
             }}
           />
         </div>
+
+        {/* Active Collaborators Sidebar Panel */}
+        <div style={{ width: '240px', background: '#0f172a', borderLeft: '1px solid #334155', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <h4 style={{ margin: '0 0 8px 0', color: '#94a3b8', textTransform: 'uppercase', tracking: '0.05em', fontSize: '13px', fontWeight: '700' }}>
+            🟢 Active Peers ({users.length})
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
+            {users.map((user) => (
+              <div 
+                key={user.id} 
+                style={{ background: '#1e293b', padding: '10px 14px', borderRadius: '6px', fontSize: '14px', border: '1px solid #334155', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
+              >
+                👤 {user.username} {user.id === socketRef.current?.id && <span style={{ color: '#38bdf8', fontSize: '11px' }}>(You)</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );
