@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, onValue, set, get, remove, update } from 'firebase/database';
@@ -21,6 +21,7 @@ const db = getDatabase(app);
 
 export default function Workspace() {
   const { roomId } = useParams();
+  const navigate = useNavigate();
   const [code, setCode] = useState('// Welcome to your common collaborative workspace!\n// Paste notes, code snippets, logs, or plain text here...');
   
   // Storage Expiry Control States
@@ -116,7 +117,7 @@ export default function Workspace() {
             This collaborative room was automatically deleted because it has been inactive for more than 24 hours. We clean inactive paths to optimize cloud resources.
           </p>
           <button 
-            onClick={() => window.location.hash = '/'} 
+            onClick={() => navigate('/')} 
             style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '6px', fontWeight: '600', fontSize: '15px', cursor: 'pointer', width: '100%' }}
           >
             Create Fresh Room

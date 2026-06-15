@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-// Changed BrowserRouter to HashRouter
+// Using HashRouter behind the scenes makes client-side routing fully compatible with Vercel deployment
 import { HashRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import Workspace from './Workspace';
@@ -11,7 +11,8 @@ function LandingPage() {
 
   const createRandomRoom = () => {
     const uniqueRoomId = uuidv4().substring(0, 8); 
-    navigate(`/room/${uniqueRoomId}`);
+    // FIXED: Prefixed with /# to prevent Vercel from searching for an actual server-side directory
+    navigate(`/#/room/${uniqueRoomId}`);
   };
 
   const handleJoinCustomRoom = (e) => {
@@ -23,14 +24,17 @@ function LandingPage() {
       .toLowerCase()
       .replace(/[^a-z0-9-_]/g, '-');
 
-    navigate(`/room/${cleanRoomName}`);
+    // FIXED: Prefixed with /# here as well
+    navigate(`/#/room/${cleanRoomName}`);
   };
 
   return (
     <div className="landing-container">
       <div className="landing-card">
-        <h1>⚡ Live Collaborative Scratchpad</h1>
-        <p>No hassle. Instantly generate common text-spaces and diagram boards with teammates.</p>
+        <h1 style={{ background: 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: '800' }}>
+          ⚡ CodeSwift Workspace
+        </h1>
+        <p>No hassle. Instantly generate real-time collaborative text and code spaces with teammates.</p>
         
         <button onClick={createRandomRoom} className="btn-create">
           Create Random Room
@@ -56,7 +60,6 @@ function LandingPage() {
 
 function App() {
   return (
-    // Router now behaves as HashRouter behind the scenes, making it fully compatible with GitHub Pages subfolders
     <Router>
       <Routes>
         <Route path="/" element={<LandingPage />} />
