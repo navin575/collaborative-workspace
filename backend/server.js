@@ -2,71 +2,87 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const { initializeApp } = require('firebase/app');
+const { getDatabase, ref, set, get } = require('firebase/database');
 
 const app = express();
 
-// Configured dynamic CORS origins for express middleware
+// Enable clean cross-origin requests
 app.use(cors({
-    origin: ["http://localhost:3000", "https://codeshift-iota.vercel.app"],
+    origin: ["http://localhost:3000", "https://codeshift-iota.vercel.app", "https://navin575.github.io"],
     methods: ["GET", "POST"]
 }));
 
 const server = http.createServer(app);
 
-// Added your production Vercel URL to Socket.io CORS rules
 const io = new Server(server, {
     cors: {
-        origin: ["http://localhost:3000", "https://codeshift-iota.vercel.app"], 
+        origin: ["http://localhost:3000", "https://codeshift-iota.vercel.app", "https://navin575.github.io"], 
         methods: ["GET", "POST"]
     }
 });
 
+// Authentic Firebase Configuration linking backend pipeline directly to your cloud instance
+const firebaseConfig = {
+  apiKey: "AIzaSyBJbKb1-aHVRRTsS1U_h5jZ9wcfJ_Quh-E",
+  authDomain: "collaborative-notepad-c6d84.firebaseapp.com",
+  databaseURL: "https://collaborative-notepad-c6d84-default-rtdb.asia-southeast1.firebasedatabase.app", 
+  projectId: "collaborative-notepad-c6d84",
+  storageBucket: "collaborative-notepad-c6d84.firebasestorage.app",
+  messagingSenderId: "446578856728",
+  appId: "1:446578856728:web:44eec04f4ef94b72eb846d"
+};
+
+// Initialize Firebase App instance
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getDatabase(firebaseApp);
+
 const roomUsers = {};
-// In-memory cache store to hold the latest text document state per room
-const roomCodeCache = {}; 
 
 io.on('connection', (socket) => {
     console.log(`User connected: ${socket.id}`);
 
-    socket.on('join-room', ({ roomId, username }) => {
+    socket.on('join-room', async ({ roomId, username }) => {
         socket.join(roomId);
         
         if (!roomUsers[roomId]) {
             roomUsers[roomId] = [];
         }
         
-        // UPGRADE CHECK: Only add the user to the display array if their username isn't already inside
         const userExists = roomUsers[roomId].some(user => user.username === username);
         if (!userExists) {
             roomUsers[roomId].push({ id: socket.id, username });
         } else {
-            // If they already exist (like a refresh), update their active socket ID reference link
             const existingUser = roomUsers[roomId].find(user => user.username === username);
             if (existingUser) existingUser.id = socket.id;
         }
         
-        // 🟢 FIXED PERSISTENCE: If code already exists for this room, send it immediately to the user who just joined/refreshed
-        if (roomCodeCache[roomId] !== undefined) {
-            socket.emit('code-update', roomCodeCache[roomId]);
+        // 🟢 PROFESSIONAL PERSISTENCE FETCH: Fetch directly from Firebase Realtime Cloud Vault!
+        try {
+            const codeRef = ref(db, `rooms/${roomId}/code`);
+            const snapshot = await get(codeRef);
+            if (snapshot.exists()) {
+                // Send the cloud-saved document straight back to the user
+                socket.emit('code-update', snapshot.val());
+            }
+        } catch (err) {
+            console.error("Failed to query records from Firebase:", err.message);
         }
         
         io.to(roomId).emit('user-list-update', roomUsers[roomId]);
-        console.log(`${username} joined room: ${roomId}`);
     });
 
     socket.on('code-change', ({ roomId, code }) => {
-        // Intercept the change and save it to our server cache
-        roomCodeCache[roomId] = code; 
-        
+        // Broadcast the active changes out immediately for smooth real-time performance
         socket.broadcast.to(roomId).emit('code-update', code);
-    });
-
-    socket.on('drawing-data', ({ roomId, drawData }) => {
-        socket.broadcast.to(roomId).emit('drawing-update', drawData);
+        
+        // 🟢 PERMANENT STORAGE COMMITTAL: Async background save straight into Firebase
+        set(ref(db, `rooms/${roomId}/code`), code).catch(err => {
+            console.error("Firebase cloud sync failed:", err.message);
+        });
     });
 
     socket.on('disconnect', () => {
-        console.log(`User disconnected: ${socket.id}`);
         for (const roomId in roomUsers) {
             roomUsers[roomId] = roomUsers[roomId].filter(user => user.id !== socket.id);
             io.to(roomId).emit('user-list-update', roomUsers[roomId]);
@@ -76,5 +92,5 @@ io.on('connection', (socket) => {
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-    console.log(`Real-time server running on port ${PORT}`);
+    console.log(`Real-time Firebase-linked server operational on port ${PORT}`);
 });
