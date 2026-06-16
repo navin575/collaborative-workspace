@@ -1,3 +1,7 @@
-# https://www.robotstxt.org/robotstxt.html
+# Allow search engines to index your home page
 User-agent: *
-Disallow:
+Allow: /$
+
+# Prevent search engines from indexing private room URLs to protect user privacy
+Disallow: /room/
+Disallow: /room/*
