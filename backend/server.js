@@ -3,11 +3,11 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const { initializeApp } = require('firebase/app');
-const { getDatabase, ref, set, get } = require('firebase/database');
+const { getDatabase, ref, set, get, remove } = require('firebase/database'); // Added remove for cleanup
 
 const app = express();
 
-// 🟢 UPDATED: Configured CORS origins for your clean new domain
+// Configured CORS origins for your clean new domain
 app.use(cors({
     origin: [
         "http://localhost:3000", 
@@ -19,7 +19,7 @@ app.use(cors({
 
 const server = http.createServer(app);
 
-// 🟢 UPDATED: Added your crisp new URL string to Socket.io security rules
+// Added your crisp new URL string to Socket.io security rules
 const io = new Server(server, {
     cors: {
         origin: [
@@ -30,8 +30,6 @@ const io = new Server(server, {
         methods: ["GET", "POST"]
     }
 });
-
-// ... Keep all the rest of your Firebase and Socket logic below exactly the same!
 
 // Authentic Firebase Configuration linking backend pipeline directly to your cloud instance
 const firebaseConfig = {
@@ -68,12 +66,11 @@ io.on('connection', (socket) => {
             if (existingUser) existingUser.id = socket.id;
         }
         
-        // 🟢 PROFESSIONAL PERSISTENCE FETCH: Fetch directly from Firebase Realtime Cloud Vault!
+        // PERSISTENCE FETCH: Reading the code object node safely from your Firebase room path
         try {
             const codeRef = ref(db, `rooms/${roomId}/code`);
             const snapshot = await get(codeRef);
             if (snapshot.exists()) {
-                // Send the cloud-saved document straight back to the user
                 socket.emit('code-update', snapshot.val());
             }
         } catch (err) {
@@ -84,11 +81,14 @@ io.on('connection', (socket) => {
     });
 
     socket.on('code-change', ({ roomId, code }) => {
-        // Broadcast the active changes out immediately for smooth real-time performance
+        // Broadcast active changes immediately to other clients in the room
         socket.broadcast.to(roomId).emit('code-update', code);
         
-        // 🟢 PERMANENT STORAGE COMMITTAL: Async background save straight into Firebase
-        set(ref(db, `rooms/${roomId}/code`), code).catch(err => {
+        // 🟢 UPDATED PERSISTENCE: Save both the current text and a live timestamp heartbeat
+        set(ref(db, `rooms/${roomId}`), {
+            code: code,
+            lastUpdatedAt: Date.now() 
+        }).catch(err => {
             console.error("Firebase cloud sync failed:", err.message);
         });
     });
@@ -100,6 +100,34 @@ io.on('connection', (socket) => {
         }
     });
 });
+
+// 🟢 AUTOMATED LIFECYCLE ENGINE: Scans and removes rooms inactive for over 24 hours
+setInterval(async () => {
+    console.log("⏰ Running database lifecycle assessment...");
+    try {
+        const roomsRef = ref(db, 'rooms');
+        const snapshot = await get(roomsRef);
+        
+        if (snapshot.exists()) {
+            const allRooms = snapshot.val();
+            const twentyFourHours = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+            const now = Date.now();
+            
+            for (const roomId in allRooms) {
+                const roomData = allRooms[roomId];
+                
+                // If a room has a timestamp and its age exceeds 24 hours, prune it permanently
+                if (roomData.lastUpdatedAt && (now - roomData.lastUpdatedAt > twentyFourHours)) {
+                    console.log(`🗑️ Room "${roomId}" has expired. Performing cloud cleanup.`);
+                    await remove(ref(db, `rooms/${roomId}`));
+                    if (roomUsers[roomId]) delete roomUsers[roomId];
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Lifecycle assessment error:", err.message);
+    }
+}, 60 * 60 * 1000); // Runs once every single hour
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
