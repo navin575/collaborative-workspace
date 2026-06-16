@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 // Using HashRouter behind the scenes makes client-side routing fully compatible with Vercel deployment
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import Workspace from './Workspace';
 import './App.css';
