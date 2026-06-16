@@ -7,20 +7,31 @@ const { getDatabase, ref, set, get } = require('firebase/database');
 
 const app = express();
 
-// Enable clean cross-origin requests
+// 🟢 UPDATED: Configured CORS origins for your clean new domain
 app.use(cors({
-    origin: ["http://localhost:3000", "https://codeshift-iota.vercel.app", "https://navin575.github.io"],
+    origin: [
+        "http://localhost:3000", 
+        "https://codshift.vercel.app",       // Your new short domain
+        "https://codeshift-iota.vercel.app" // Keep for redirect backup safety
+    ],
     methods: ["GET", "POST"]
 }));
 
 const server = http.createServer(app);
 
+// 🟢 UPDATED: Added your crisp new URL string to Socket.io security rules
 const io = new Server(server, {
     cors: {
-        origin: ["http://localhost:3000", "https://codeshift-iota.vercel.app", "https://navin575.github.io"], 
+        origin: [
+            "http://localhost:3000", 
+            "https://codshift.vercel.app",
+            "https://codeshift-iota.vercel.app"
+        ], 
         methods: ["GET", "POST"]
     }
 });
+
+// ... Keep all the rest of your Firebase and Socket logic below exactly the same!
 
 // Authentic Firebase Configuration linking backend pipeline directly to your cloud instance
 const firebaseConfig = {
