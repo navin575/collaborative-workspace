@@ -69,13 +69,51 @@ export default function Workspace() {
     URL.revokeObjectURL(blobUrl);
   };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#1e1e1e', color: '#38bdf8', fontFamily: 'sans-serif', fontSize: '18px' }}>
-        ⚡ Connecting to real-time streaming server on Render...
-      </div>
-    );
-  }
+ if (loading) {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100vh',
+      backgroundColor: '#0f172a', 
+      color: '#f8fafc',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    }}>
+      <div className="codshift-loader" style={{
+        width: '50px',
+        height: '50px',
+        border: '5px solid #1e293b',
+        borderTop: '5px solid #38bdf8', 
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite',
+        marginBottom: '20px'
+      }}></div>
+
+      <p style={{
+        fontSize: '1.1rem',
+        fontWeight: '500',
+        letterSpacing: '0.5px',
+        animation: 'pulse 1.8s ease-in-out infinite',
+        color: '#94a3b8'
+      }}>
+        Connecting to real-time streaming server on Render...
+      </p>
+
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 0.6; }
+          50% { opacity: 1; transform: scale(1.02); }
+        }
+      `}</style>
+    </div>
+  );
+}
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#1e1e1e', color: '#fff', fontFamily: 'sans-serif' }}>
